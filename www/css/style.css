@@ -1,0 +1,307 @@
+#map{
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1;
+}
+.leaflet-layer,
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-control-attribution {
+  filter: invert(100%) hue-rotate(210deg) saturate(200%) brightness(95%) contrast(90%);
+}
+
+.leaflet-container {
+    background: #000 !important
+    /* ;color:#ff00f2 */
+}
+.leaflet-bar .leaflet-control-geocoder-expanded .leaflet-control{
+    width: 100% !important;
+
+}
+.leaflet-top{
+    width: calc(100% - 10px) !important;
+}
+.leaflet-right .leaflet-control{
+    margin-left: 10px !important;
+}
+.leaflet-control-geocoder-expanded{
+    min-width: calc(100% - 10px) !important;
+    min-height: 40px !important;
+    border-radius: 10px !important;
+    filter: invert(1) !important;
+    font-size: 20px !important;
+}
+.leaflet-control-geocoder-icon{
+    height: 40px !important;
+    width: 40px !important;
+    border-radius: 10px !important;
+    /* filter: invert(1); */
+}
+.leaflet-control-geocoder-expanded .leaflet-control-geocoder-form{
+    width: calc(100% - 60px) !important;
+}
+.leaflet-control-geocoder-form input{
+    width: 100% !important;
+}
+.leaflet-control-geocoder-form-no-error{
+    width: 100% !important;
+}
+.leaflet-control-geocoder-alternatives{
+    width: 100% !important;
+}
+
+.leaflet-bottom {
+    top: 10% !important;
+    transition: bottom 0.3s ease !important;
+}
+
+/* .leaflet-bottom.expanded-bottom {
+    bottom: 50% !important;
+} */
+#containerCustomRoutingControl{
+    display: none;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+    background-color: #1B2B3A;
+    height: 70px;
+    color: #fff !important;
+    border-radius: 20px 20px 0 0;
+    overflow: hidden;
+    transition: height 0.3s ease;
+    overflow: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+#containerCustomRoutingControl::-webkit-scrollbar{
+    display: none;
+}
+#containerCustomRoutingControl.expanded{
+    height: 50% !important;
+}
+.headContainerRoutingControl{
+    height: 70px !important;
+    width: 100% !important;
+    text-align: center;
+    font-size: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.leaflet-routing-icon{
+    filter: invert(1) !important;
+}
+.leaflet-routing-alt tr:hover{
+    background-color: #32485e !important;
+}
+.glowing-route {
+    filter: drop-shadow(0 2px 4px #fbff005d);
+    transition: stroke-width 0.3s ease;
+}
+.glowing-route-white {
+    filter: drop-shadow(0 2px 4px #ffffff62);
+    transition: stroke-width 0.3s ease;
+}
+
+#btnCancelOtherUser{
+    all: unset;
+    position: absolute;
+    z-index: 100000;
+    top: calc(15% + 240px);
+    right: 5%;
+    width: 40px;
+    height: 40px;
+    border-radius: 5px 0 0 5px;
+    background-color: #000000c7;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    transition: all .3s linear forward;
+    opacity:0;
+}
+#btnCancelOtherUser img{
+    width: 80%;
+    filter: invert(1);
+}
+#btnSideBarOtherUser{
+    all: unset;
+    position: absolute;
+    z-index: 100000;
+    top: 15%;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 5px 0 0 5px;
+    background-color: #000000c7;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    transition: all .3s linear forward;
+}
+#btnSideBarOtherUser img{
+    width: 80%;
+}
+#btnSideBarOtherUser.expanded{
+    transform: translateX(-200px)
+}
+#btnFlyToLocation{
+    all: unset;
+    position: absolute;
+    z-index: 100;
+    bottom: 14%;
+    right: 2%;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #000000c7;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    transition: all .3s linear forward;
+}
+#btnFlyToLocation img{
+    width: 80%;
+}
+
+#btnCancelRoutes{
+    all: unset;
+    display: none;
+    position: absolute;
+    z-index: 100;
+    bottom: 8%;
+    right: 2%;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #fff;
+    /* display: flex; */
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    transition: all .3s linear forward;
+}
+#btnCancelRoutes img{
+    width: 100%;
+}
+#btnCancelRoutes.expanded{
+    bottom: 50%;
+}
+#btnFlyToLocation.expanded{
+    bottom: 57%;
+}
+.leaflet-popup-content-wrapper{
+    background-color: #32485e !important;
+    /* background-color: #4673a0 !important; */
+    color: #fff !important;
+}
+.leaflet-popup-content{
+    color: #fff;
+}
+.leaflet-popup-close-button{
+    color: #fff !important;
+}
+
+.containerLoader{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100vh;
+}
+.backgroundloader{
+    background-color: #32485e;
+    width: 200px;
+    height: 200px;
+    z-index: 100000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    border-radius: 30px;
+}
+.loader {
+    position: relative;
+    width: 108px;
+    display: flex;
+    justify-content: space-between;
+    z-index: 10000;
+  }
+  .loader::after , .loader::before  {
+    content: '';
+    display: inline-block;
+    width: 48px;
+    height: 48px;
+    background-color: #FFF;
+    background-image:  radial-gradient(circle 14px, #0d161b 100%, transparent 0);
+    background-repeat: no-repeat;
+    border-radius: 50%;
+    animation: eyeMove 10s infinite , blink 10s infinite;
+  }
+  @keyframes eyeMove {
+    0%  , 10% {     background-position: 0px 0px}
+    13%  , 40% {     background-position: -15px 0px}
+    43%  , 70% {     background-position: 15px 0px}
+    73%  , 90% {     background-position: 0px 15px}
+    93%  , 100% {     background-position: 0px 0px}
+  }
+  @keyframes blink {
+    0%  , 10% , 12% , 20%, 22%, 40%, 42% , 60%, 62%,  70%, 72% , 90%, 92%, 98% , 100%
+    { height: 48px}
+    11% , 21% ,41% , 61% , 71% , 91% , 99%
+    { height: 18px}
+  }
+  
+  .start-navigation-btn{
+    border-radius:5px;
+    background-color:#4673a0;
+    color:#fff;
+    padding:10px;
+  }
+
+  .containerOtherUser{
+    width: 250px;
+    height: 300px;
+    background-color: #000000c7;
+    color: white;
+    position: absolute;
+    top: 14%;
+    right: 0;
+    z-index: 0;
+    border-radius: 20px;
+    transition: all 1s linear forward;
+    opacity: 0;
+  }
+  .containerOtherUser.expanded{
+    z-index: 10000;
+    opacity: 1;
+  }
+  .listOther-item{
+    width: calc(100% - 20px);
+    height: 40px;
+    border-bottom: 1px solid #ffffff27;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    justify-content: space-between;
+  }
+  .listOther-item button{
+    all: unset;
+    width: 30px;
+    height:30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .listOther-item h3{
+    white-space: nowrap;       
+    overflow: hidden;          
+    text-overflow: ellipsis;   
+    width: 100px;  
+  }
