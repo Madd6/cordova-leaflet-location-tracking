@@ -1,7 +1,8 @@
-Cordova-Leaflet-Location-Tracking
+<h1>Cordova-Leaflet-Location-Tracking</h1></hr>
 A mobile app built with Cordova, Leaflet, and Leaflet Routing Machine for real-time user location tracking. The app shares the user's live position on a map with other users when a route is started.
-
-Preparation
+<br>
+<h3>Preparation</h3>
+<br>
 Plugins used:
 
 cordova-plugin-android-permissions@1.1.5 (Handles Android permissions)
