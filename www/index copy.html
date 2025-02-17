@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' data:">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="assets/maps.png">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <title>Maps</title>
+</head>
+<body>
+    <div class="containerLoader" id="loader">
+        <div class="backgroundloader">
+            <span class="loader" ></span>
+        </div>
+    </div>
+    <div id="map"></div>
+    <div id="containerCustomRoutingControl" >
+        <div class="headContainerRoutingControl">
+            swipe for routes
+        </div>
+    </div>
+
+    <button type="button" id="btnFlyToLocation">
+        <img src="assets/target.png" alt="" />
+    </button>
+    <button type="button" id="btnCancelRoutes">
+        <img src="assets/cancel.png" alt="" />
+    </button>
+
+    <button type="button" id="btnSideBarOtherUser">
+        <img src="assets/group (1).png" alt="" />
+    </button>
+    <div class="containerOtherUser" >
+        <div class="title" style="display: flex;position: relative;border-bottom: 1px solid #ffffff27;">
+            <button type="button" id="btnCancelOtherUser">
+                <img src="assets/cancel.png" alt="" />
+            </button>
+            <h3 style="text-align: center;width: 100%;">Other Users</h3>
+        </div>
+        <div class="listOther" style="width: 100%;overflow-y: auto; padding: 0 10px;">
+            
+        </div>
+    </div>
+
+    <script src="cordova.js"></script>
+    <script type="module">
+        import initMap from './js/initMap.js';
+        import { UserIcon, OtherUserIcon, DestinasiIcon, otherDestinasiIcon } from './js/module/ModuleIcon.js';
+        import { routeStyle, otherRouteStyle, routeStyleToStartPoint } from './js/module/ModuleRoutesStyle.js';
+        import createRoute from './js/createRoute.js';
+        import TrackUser from './js/TrackUser.js'
+        import hitungJarak from './js/hitungJarak.js'
+        import markerMove from './js/markerMove.js'
+        import initGeocode from './js/initGeocode.js'
+        import btnDes from './js/btnDes.js'
+        import drawerAltControl from './js/drawerAltControl.js'
+        import cancelRoute from './js/cancelRoute.js'
+        import moveAltControl from './js/moveAltControl.js'
+        import otherUserList from './js/otherUserList.js'
+
+
+        let routingControl,userMarker,destination,firstTrack,curLoc,destBtn,otherRoutingControl,markers,otherUserRoute;
+        let showOtherUserRoute,startPoint
+        let hasrouting = false;
+
+        const containerCustomRoutingControl = document.getElementById("containerCustomRoutingControl")
+        const headContainerRoutingControl = document.querySelector(".headContainerRoutingControl")
+        const btnFlyToLocation = document.getElementById('btnFlyToLocation')
+        const btnCancel = document.getElementById('btnCancelRoutes')
+        const btnSideBarOtherUser = document.getElementById('btnSideBarOtherUser')
+        const containerOtherUser = document.querySelector('.containerOtherUser')
+        const btnCancelOtherUser = document.getElementById('btnCancelOtherUser')
+        
+        var map = await initMap('map')
+        const socket = io('https://chain-stirring-windshield.glitch.me', {
+            transports: ['websocket']
+        });
+        socket.on('connect', () => {
+            console.log('Connected to server:', socket.id);
+        });
+
+        function showSpinner() {
+            document.getElementById("loader").style.display = "flex";
+        }
+
+        function hideSpinner() {
+            document.getElementById("loader").style.display = "none";
+        }
+
+
+        
+        document.addEventListener('deviceready', onDeviceReady, false);
+
+        function onDeviceReady() {
+            navigator.splashscreen.hide();
+
+            setTimeout(requestPermission, 500) 
+        }
+
+    function checkGPS() {
+        cordova.plugins.diagnostic.isLocationEnabled(
+            function (enabled) {
+            if (enabled) {
+                console.log("GPS aktif");
+                requestHighAccuracy();
+            } else {
+                console.warn(
+                "GPS tidak aktif, meminta pengguna untuk menyalakan GPS..."
+                );
+                cordova.plugins.diagnostic.switchToLocationSettings();
+            }
+            },
+            function (error) {
+            console.error("Gagal memeriksa status GPS: " + error);
+            }
+        );
+    }
+
+    function watchGPSChanges() {
+        cordova.plugins.diagnostic.registerLocationStateChangeHandler(function (state) {
+            if (
+                state === cordova.plugins.diagnostic.locationMode.LOCATION_OFF ||
+                state === cordova.plugins.diagnostic.locationMode.MODE_LOW_POWER ||
+                state === cordova.plugins.diagnostic.locationMode.MODE_SENSORS_ONLY
+            ) {
+                console.warn("⚠️ GPS tiba-tiba dimatikan!");
+                alert("GPS Anda dimatikan, aplikasi memerlukan GPS untuk berfungsi.");
+                cordova.plugins.diagnostic.switchToLocationSettings();
+            } else if (state === cordova.plugins.diagnostic.locationMode.HIGH_ACCURACY) {
+                console.log("✅ GPS kembali aktif dengan mode akurasi tinggi.");
+            } else {
+                console.log("ℹ️ Perubahan status GPS:", state);
+            }
+        });
+    }
+        
+    function requestPermission() {
+        var permissions = cordova.plugins.permissions;
+
+        permissions.checkPermission(permissions.ACCESS_FINE_LOCATION, function(status) {
+            if (status.hasPermission) {
+                localStorage.setItem('locationPermission', "true")
+                console.log("✅ Izin lokasi sudah diberikan.");
+                checkIfPermissionDeniedPermanently()
+                startApps();
+                checkGPS();
+                watchGPSChanges();
+            } else {
+                console.warn("⚠️ Izin lokasi belum diberikan, meminta izin...");
+                permissions.requestPermission(permissions.ACCESS_FINE_LOCATION, function(status) {
+                    if (status.hasPermission) {
+                        localStorage.setItem('locationPermission', "true")
+                        console.log("✅ Izin lokasi diberikan!");
+                        startApps();
+                        checkGPS(); 
+                        watchGPSChanges();
+                    } else {
+                        console.error("❌ Izin lokasi ditolak!");
+
+                        permissions.checkPermission(permissions.ACCESS_FINE_LOCATION, function(recheckStatus) {
+                            if (!recheckStatus.hasPermission) {
+                                checkIfPermissionDeniedPermanently()
+                            }
+                        });
+                        if(!localStorage.getItem("locationPermission") || localStorage.getItem("locationPermission") !== "true"){
+                            alert("Anda belum mengaktifkan izin lokasi, izinkan secara manual di pengaturan aplikasi.");
+                            cordova.plugins.diagnostic.switchToSettings();
+                        }
+                    }
+                }, function() {
+                    console.error("❌ Gagal meminta izin!");
+                });
+            }
+        }, function() {
+            if(!localStorage.getItem("locationPermission") || localStorage.getItem("locationPermission") !== "true"){
+                alert("Anda belum mengaktifkan izin lokasi, izinkan secara manual di pengaturan aplikasi.");
+                cordova.plugins.diagnostic.switchToSettings();
+            }
+            console.error("❌ Gagal mengecek izin!");
+        });
+    }
+    function checkIfPermissionDeniedPermanently() {
+        cordova.plugins.diagnostic.getPermissionAuthorizationStatus(function(status) {
+            if (status === cordova.plugins.diagnostic.permissionStatus.DENIED_ALWAYS) {
+                console.error("⚠️ Izin ditolak secara permanen ('Jangan Tanya Lagi').");
+                alert("Anda harus mengaktifkan izin lokasi secara manual di pengaturan aplikasi.");
+                    cordova.plugins.diagnostic.switchToSettings();
+            } else if (status === cordova.plugins.diagnostic.permissionStatus.DENIED_ONCE) {
+                console.warn("⚠️ Izin ditolak sementara ('Don't Allow').");
+                alert("Anda harus mengaktifkan izin lokasi secara manual di pengaturan aplikasi.");
+                    cordova.plugins.diagnostic.switchToSettings();
+            } else if (status === cordova.plugins.diagnostic.permissionStatus.GRANTED) {
+                console.log("✅ Izin lokasi diberikan secara permanen.");
+            } else if (status === cordova.plugins.diagnostic.permissionStatus.NOT_REQUESTED) {
+                console.warn("ℹ️ Izin belum pernah diminta sebelumnya.");
+            }
+        }, function(error) {
+            console.error("Gagal memeriksa status izin:", error);
+        }, cordova.plugins.diagnostic.permission.ACCESS_FINE_LOCATION);
+    }
+    
+    
+    // startApps()
+    function startNavigator(pos){//kode fro starting route
+        destination = pos
+
+
+        if(routingControl){
+            map.removeControl(routingControl)
+        }
+        startPoint = curLoc
+        routingControl = createRoute(startPoint,destination,routeStyle,UserIcon,DestinasiIcon,map)
+        console.log(routingControl)
+
+        map.on('moveend', function() {
+            
+        });
+        moveAltControl(containerCustomRoutingControl,btnCancel);
+        
+        hasrouting = true;
+        
+        map.flyTo(startPoint , 17)
+
+
+        hitungJarak(startPoint ,destination,userMarker,routingControl,map,hasrouting,socket)
+    }
+
+    function startApps(){
+        console.log("app Started")
+
+
+        btnDes(map , startNavigator)
+        initGeocode(map,startNavigator)
+
+        TrackUser((userLocation)=> {
+            curLoc = userLocation
+            if(!firstTrack) {
+                firstTrack = userLocation
+                map.flyTo([userLocation.lat,userLocation.lng] , 17)
+                console.log("its suppose to be run once")
+            }
+            if(routingControl){
+                
+                routingControl.spliceWaypoints(0, 1, userLocation);
+
+                hitungJarak(userLocation ,destination,userMarker,routingControl,map,hasrouting,socket)
+            }
+            
+            userMarker = markerMove(userMarker,userLocation,map);
+
+            if(hasrouting){
+                socket.emit('tracking', {lat:curLoc.lat , lng:curLoc.lng , destination:destination, hasrouting:hasrouting})
+            }else{
+                if(userMarker && userMarker.getPopup()){
+                    userMarker.closePopup();
+                    userMarker.unbindPopup();
+                }
+            }
+
+        },(err)=> {
+            console.error(err);
+        })
+        
+
+        function flyBackToUser(){
+            map.flyTo([curLoc.lat,curLoc.lng], 17)
+        }
+        btnFlyToLocation.addEventListener('click', () =>{
+            flyBackToUser()
+        })
+
+        btnCancel.addEventListener('click', () =>{
+            if (routingControl) {
+                routingControl.remove();
+                routingControl = null;
+            }
+            cancelRoute(containerCustomRoutingControl,btnCancel,btnFlyToLocation,userMarker)
+            hasrouting = false;
+            socket.emit('stopTracking')
+        })
+        btnCancelOtherUser.addEventListener('click', () =>{
+            if (otherRoutingControl) {
+                otherRoutingControl.remove();
+                otherRoutingControl = null;
+            }
+            btnCancelOtherUser.style.opacity = 0
+        })
+
+        btnSideBarOtherUser.addEventListener('click', () =>{
+            containerOtherUser.classList.toggle('expanded')
+            btnSideBarOtherUser.classList.toggle('expanded')
+        })
+
+        function moveBtn() {
+            const btnFlyToLocation = document.getElementById('btnFlyToLocation');
+            const btnCancelRoutes = document.getElementById('btnCancelRoutes');
+            
+            if (containerCustomRoutingControl.classList.contains('expanded')) {
+                btnCancelRoutes.classList.add('expanded')
+                btnFlyToLocation.classList.add('expanded')
+            } else {
+                btnCancelRoutes.classList.remove('expanded')
+                btnFlyToLocation.classList.remove('expanded')
+            }
+        }
+        moveBtn()
+
+        drawerAltControl(containerCustomRoutingControl, headContainerRoutingControl, moveBtn)
+
+        const setShowOtherUserRoute = (id,location) => {
+            showOtherUserRoute = id;
+            handleOtherRoutes(location)
+            btnCancelOtherUser.style.opacity = "100%"
+        };
+        const handleOtherRoutes = (location) => {
+
+            if (!otherRoutingControl) {
+                otherRoutingControl = createRoute(
+                    L.latLng(location.lat, location.lng),
+                    location.destination,
+                    otherRouteStyle,
+                    OtherUserIcon,
+                    otherDestinasiIcon,
+                    map
+                )
+            } else {
+                map.removeControl(otherRoutingControl)
+
+                otherRoutingControl = createRoute(
+                    L.latLng(location.lat, location.lng),
+                    location.destination,
+                    otherRouteStyle,
+                    OtherUserIcon,
+                    otherDestinasiIcon,
+                    map
+                )
+                
+            }
+            document.querySelectorAll('.leaflet-routing-container.leaflet-bar.leaflet-control')
+            .forEach((el, index) => {
+                if (index >= 0) el.style.display = "none";
+            });
+            
+        }
+
+        
+        socket.on('receive-location', (data) => {
+            const { location, id } = data;
+            otherUserList(".listOther",data,setShowOtherUserRoute,map)
+            if (id === showOtherUserRoute) {
+                handleOtherRoutes(location)
+                
+            }
+            
+        })
+        socket.on('remove-marker', (data) => {
+            const { id } = data;
+            const containerListOther = document.querySelector('.listOther');
+            let listOther = document.getElementById(`otherUser-${id}`);
+            if(containerListOther && listOther){
+                containerListOther.removeChild(listOther);
+            }
+            if(otherRoutingControl){
+                map.removeControl(otherRoutingControl)
+            }
+        });
+    }
+        
+        
+    </script>
+</body>
+</html>

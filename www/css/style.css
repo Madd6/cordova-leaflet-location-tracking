@@ -303,5 +303,47 @@
     white-space: nowrap;       
     overflow: hidden;          
     text-overflow: ellipsis;   
-    width: 100px;  
+    width: 60px;  
   }
+  .imgPreview{
+    width: 100%;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+  }
+  .custom-marker{
+    width: 100px;
+    height: 100px;
+    background-color: #4673a0;
+    border-radius: 100%;
+    border: 2px solid #fff;
+    position: relative;
+    /* overflow: hidden; */
+  }
+  .custom-marker img{
+    width: 100% !important;
+    object-fit: cover;
+    aspect-ratio: 1/1;
+    border-radius: 100%;
+  }
+  .custom-marker::after{
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    right: 50%;
+    transform: translateX(50%);
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 20px solid #fff;
+  }
+  /* .custom-marker::before{
+    content: '';
+    position: absolute;
+    z-index: 1;
+    bottom: -16px;
+    right: 50%;
+    transform: translateX(50%);
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 16px solid #4673a0;
+  } */
+  

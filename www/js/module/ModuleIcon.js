@@ -1,3 +1,25 @@
+export const CreateUserIcon = (url) => {
+    return L.divIcon({
+        className: "custom-marker",
+        html: `
+        <div>
+            <img src="${url ? url : '/assets/user.png'}" alt="User Icon" alt=""/>
+        </div>
+        `,
+        iconSize: [64, 64],
+    })
+};
+export const CreateOtherUserIcon = (url) => {
+    return L.divIcon({
+        className: "custom-marker",
+        html: `
+        <div>
+            <img src="${url ? url : '/assets/user.png'}" alt="User Icon" alt=""/>
+        </div>
+        `,
+        iconSize: [64, 64],
+    })
+};
 export const UserIcon = L.icon({
     iconUrl: '/assets/map-marker.png',
     iconSize: [64, 64],

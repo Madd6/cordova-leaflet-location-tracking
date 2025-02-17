@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' data:">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' data: ; img-src * 'self' 'unsafe-inline' 'unsafe-eval' blob: data: ">
     <link rel="stylesheet" href="css/style.css">
     <link rel="icon" href="assets/maps.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -15,7 +15,23 @@
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <title>Maps</title>
 </head>
-<body>
+<body style="display: flex;justify-content: center;align-items: center;">
+    <form id="loginPopUp" style="display: none;position: absolute;justify-content: start;align-items: center;z-index: 10000000;
+    width: 90%;height: 60vh;background-color: #1B2B3A;border-radius: 10px;color: #fff;flex-direction: column;padding: 10px;">
+        <h2 style="text-align: center;display: flex;justify-content: center;">How do you want others <br> to See you?</h2>
+        <div id="previewImage" style="width: 150px;height: 150px;border:2px solid #fff; border-radius: 100%;overflow: hidden;">
+            <img src="assets/user.png" alt="" style="width: 100%;aspect-ratio: 1/1;object-fit: cover;">
+        </div>
+        <input type="file" required files="assets/user.png"
+        style="width: 90%;padding: 10px;border-radius: 10px;background-color: #1b2b3a60;color: #fff;
+        font-size: 20px;" accept="image/*">
+        <h2 style="text-align: center;display: flex;justify-content: center;">How do you want others <br> to call you?</h2>
+        <input type="text" placeholder="Your Name..." required value="madd"
+        style="width: 90%;padding: 10px;border-radius: 10px;background-color: #1b2b3a60;color: #fff;
+        font-size: 20px;">
+        <button style="all: unset;margin-top: 20px;color: #1B2B3A;text-align: center;border-radius: 10px;
+        width: 90%; padding: 10px;font-size: 20px;background-color: #fbff00;">submit</button>
+    </form>
     <div class="containerLoader" id="loader">
         <div class="backgroundloader">
             <span class="loader" ></span>
@@ -50,10 +66,10 @@
         </div>
     </div>
 
-    <script src="cordova.js"></script>
+    <!-- <script src="cordova.js"></script> -->
     <script type="module">
         import initMap from './js/initMap.js';
-        import { UserIcon, OtherUserIcon, DestinasiIcon, otherDestinasiIcon } from './js/module/ModuleIcon.js';
+        import { UserIcon, OtherUserIcon, DestinasiIcon, otherDestinasiIcon, CreateUserIcon , CreateOtherUserIcon} from './js/module/ModuleIcon.js';
         import { routeStyle, otherRouteStyle, routeStyleToStartPoint } from './js/module/ModuleRoutesStyle.js';
         import createRoute from './js/createRoute.js';
         import TrackUser from './js/TrackUser.js'
@@ -68,7 +84,7 @@
 
 
         let routingControl,userMarker,destination,firstTrack,curLoc,destBtn,otherRoutingControl,markers,otherUserRoute;
-        let showOtherUserRoute,startPoint
+        let showOtherUserRoute,startPoint,userIdentity
         let hasrouting = false;
 
         const containerCustomRoutingControl = document.getElementById("containerCustomRoutingControl")
@@ -78,8 +94,18 @@
         const btnSideBarOtherUser = document.getElementById('btnSideBarOtherUser')
         const containerOtherUser = document.querySelector('.containerOtherUser')
         const btnCancelOtherUser = document.getElementById('btnCancelOtherUser')
+        const loginPopUp = document.getElementById('loginPopUp')
+        const previewImage = document.getElementById('previewImage')
         
         var map = await initMap('map')
+        if(localStorage.getItem('userIdentity')){
+            userIdentity = JSON.parse(localStorage.getItem('userIdentity'))
+            loginPopUp.style.display = "none"
+        }else{
+            // alert("user isn`t login yet")
+            loginPopUp.style.display = "flex"
+        }
+
         const socket = io('https://chain-stirring-windshield.glitch.me', {
             transports: ['websocket']
         });
@@ -95,120 +121,162 @@
             document.getElementById("loader").style.display = "none";
         }
 
-
-        
-        document.addEventListener('deviceready', onDeviceReady, false);
-
-        function onDeviceReady() {
-            navigator.splashscreen.hide();
-
-            setTimeout(requestPermission, 500) 
+        function getPreviewImage(event) {
+            let file =event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.querySelector("img").src = e.target.result
+                
+            }
+            reader.readAsDataURL(file);
         }
 
-    function checkGPS() {
-        cordova.plugins.diagnostic.isLocationEnabled(
-            function (enabled) {
-            if (enabled) {
-                console.log("GPS aktif");
-                requestHighAccuracy();
-            } else {
-                console.warn(
-                "GPS tidak aktif, meminta pengguna untuk menyalakan GPS..."
-                );
-                cordova.plugins.diagnostic.switchToLocationSettings();
-            }
-            },
-            function (error) {
-            console.error("Gagal memeriksa status GPS: " + error);
-            }
-        );
-    }
+        document.querySelector("input[type='file']").addEventListener('change',getPreviewImage)
+        loginPopUp.addEventListener('submit',function (event){
+            event.preventDefault();
+            let file = event.target[0].files[0];
+            let usernameVal = event.target[1].value;
 
-    function watchGPSChanges() {
-        cordova.plugins.diagnostic.registerLocationStateChangeHandler(function (state) {
-            if (
-                state === cordova.plugins.diagnostic.locationMode.LOCATION_OFF ||
-                state === cordova.plugins.diagnostic.locationMode.MODE_LOW_POWER ||
-                state === cordova.plugins.diagnostic.locationMode.MODE_SENSORS_ONLY
-            ) {
-                console.warn("⚠️ GPS tiba-tiba dimatikan!");
-                alert("GPS Anda dimatikan, aplikasi memerlukan GPS untuk berfungsi.");
-                cordova.plugins.diagnostic.switchToLocationSettings();
-            } else if (state === cordova.plugins.diagnostic.locationMode.HIGH_ACCURACY) {
-                console.log("✅ GPS kembali aktif dengan mode akurasi tinggi.");
-            } else {
-                console.log("ℹ️ Perubahan status GPS:", state);
+            if (!file) {
+                alert("Harap pilih gambar terlebih dahulu.");
+                return;
             }
-        });
-    }
+
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const fileImage = e.target.result;
+
+                const dataUserIdentity = {
+                    username: usernameVal,
+                    userimg: fileImage
+                };
+
+                localStorage.setItem("userIdentity", JSON.stringify(dataUserIdentity));
+            };
+            loginPopUp.style = "none"
+            reader.readAsDataURL(file);
+        } )
+        setInterval(() => {
+            userIdentity = JSON.parse(localStorage.getItem("userIdentity"));
+
+            if (!userIdentity) {
+                // Jika data tidak ada, tampilkan pop-up login
+                loginPopUp.style.display = "flex";
+            }
+        }, 1000);
+    //     document.addEventListener('deviceready', onDeviceReady, false);
+
+    //     function onDeviceReady() {
+    //         navigator.splashscreen.hide();
+
+    //         setTimeout(requestPermission, 500) 
+    //     }
+
+    // function checkGPS() {
+    //     cordova.plugins.diagnostic.isLocationEnabled(
+    //         function (enabled) {
+    //         if (enabled) {
+    //             console.log("GPS aktif");
+    //             requestHighAccuracy();
+    //         } else {
+    //             console.warn(
+    //             "GPS tidak aktif, meminta pengguna untuk menyalakan GPS..."
+    //             );
+    //             cordova.plugins.diagnostic.switchToLocationSettings();
+    //         }
+    //         },
+    //         function (error) {
+    //         console.error("Gagal memeriksa status GPS: " + error);
+    //         }
+    //     );
+    // }
+
+    // function watchGPSChanges() {
+    //     cordova.plugins.diagnostic.registerLocationStateChangeHandler(function (state) {
+    //         if (
+    //             state === cordova.plugins.diagnostic.locationMode.LOCATION_OFF ||
+    //             state === cordova.plugins.diagnostic.locationMode.MODE_LOW_POWER ||
+    //             state === cordova.plugins.diagnostic.locationMode.MODE_SENSORS_ONLY
+    //         ) {
+    //             console.warn("⚠️ GPS tiba-tiba dimatikan!");
+    //             alert("GPS Anda dimatikan, aplikasi memerlukan GPS untuk berfungsi.");
+    //             cordova.plugins.diagnostic.switchToLocationSettings();
+    //         } else if (state === cordova.plugins.diagnostic.locationMode.HIGH_ACCURACY) {
+    //             console.log("✅ GPS kembali aktif dengan mode akurasi tinggi.");
+    //         } else {
+    //             console.log("ℹ️ Perubahan status GPS:", state);
+    //         }
+    //     });
+    // }
         
-    function requestPermission() {
-        var permissions = cordova.plugins.permissions;
+    // function requestPermission() {
+    //     var permissions = cordova.plugins.permissions;
 
-        permissions.checkPermission(permissions.ACCESS_FINE_LOCATION, function(status) {
-            if (status.hasPermission) {
-                localStorage.setItem('locationPermission', "true")
-                console.log("✅ Izin lokasi sudah diberikan.");
-                checkIfPermissionDeniedPermanently()
-                startApps();
-                checkGPS();
-                watchGPSChanges();
-            } else {
-                console.warn("⚠️ Izin lokasi belum diberikan, meminta izin...");
-                permissions.requestPermission(permissions.ACCESS_FINE_LOCATION, function(status) {
-                    if (status.hasPermission) {
-                        localStorage.setItem('locationPermission', "true")
-                        console.log("✅ Izin lokasi diberikan!");
-                        startApps();
-                        checkGPS(); 
-                        watchGPSChanges();
-                    } else {
-                        console.error("❌ Izin lokasi ditolak!");
+    //     permissions.checkPermission(permissions.ACCESS_FINE_LOCATION, function(status) {
+    //         if (status.hasPermission) {
+    //             localStorage.setItem('locationPermission', "true")
+    //             console.log("✅ Izin lokasi sudah diberikan.");
+    //             checkIfPermissionDeniedPermanently()
+    //             startApps();
+    //             checkGPS();
+    //             watchGPSChanges();
+    //         } else {
+    //             console.warn("⚠️ Izin lokasi belum diberikan, meminta izin...");
+    //             permissions.requestPermission(permissions.ACCESS_FINE_LOCATION, function(status) {
+    //                 if (status.hasPermission) {
+    //                     localStorage.setItem('locationPermission', "true")
+    //                     console.log("✅ Izin lokasi diberikan!");
+    //                     startApps();
+    //                     checkGPS(); 
+    //                     watchGPSChanges();
+    //                 } else {
+    //                     console.error("❌ Izin lokasi ditolak!");
 
-                        permissions.checkPermission(permissions.ACCESS_FINE_LOCATION, function(recheckStatus) {
-                            if (!recheckStatus.hasPermission) {
-                                checkIfPermissionDeniedPermanently()
-                            }
-                        });
-                        if(!localStorage.getItem("locationPermission") || localStorage.getItem("locationPermission") !== "true"){
-                            alert("Anda belum mengaktifkan izin lokasi, izinkan secara manual di pengaturan aplikasi.");
-                            cordova.plugins.diagnostic.switchToSettings();
-                        }
-                    }
-                }, function() {
-                    console.error("❌ Gagal meminta izin!");
-                });
-            }
-        }, function() {
-            if(!localStorage.getItem("locationPermission") || localStorage.getItem("locationPermission") !== "true"){
-                alert("Anda belum mengaktifkan izin lokasi, izinkan secara manual di pengaturan aplikasi.");
-                cordova.plugins.diagnostic.switchToSettings();
-            }
-            console.error("❌ Gagal mengecek izin!");
-        });
-    }
-    function checkIfPermissionDeniedPermanently() {
-        cordova.plugins.diagnostic.getPermissionAuthorizationStatus(function(status) {
-            if (status === cordova.plugins.diagnostic.permissionStatus.DENIED_ALWAYS) {
-                console.error("⚠️ Izin ditolak secara permanen ('Jangan Tanya Lagi').");
-                alert("Anda harus mengaktifkan izin lokasi secara manual di pengaturan aplikasi.");
-                    cordova.plugins.diagnostic.switchToSettings();
-            } else if (status === cordova.plugins.diagnostic.permissionStatus.DENIED_ONCE) {
-                console.warn("⚠️ Izin ditolak sementara ('Don't Allow').");
-                alert("Anda harus mengaktifkan izin lokasi secara manual di pengaturan aplikasi.");
-                    cordova.plugins.diagnostic.switchToSettings();
-            } else if (status === cordova.plugins.diagnostic.permissionStatus.GRANTED) {
-                console.log("✅ Izin lokasi diberikan secara permanen.");
-            } else if (status === cordova.plugins.diagnostic.permissionStatus.NOT_REQUESTED) {
-                console.warn("ℹ️ Izin belum pernah diminta sebelumnya.");
-            }
-        }, function(error) {
-            console.error("Gagal memeriksa status izin:", error);
-        }, cordova.plugins.diagnostic.permission.ACCESS_FINE_LOCATION);
-    }
+    //                     permissions.checkPermission(permissions.ACCESS_FINE_LOCATION, function(recheckStatus) {
+    //                         if (!recheckStatus.hasPermission) {
+    //                             checkIfPermissionDeniedPermanently()
+    //                         }
+    //                     });
+    //                     if(!localStorage.getItem("locationPermission") || localStorage.getItem("locationPermission") !== "true"){
+    //                         alert("Anda belum mengaktifkan izin lokasi, izinkan secara manual di pengaturan aplikasi.");
+    //                         cordova.plugins.diagnostic.switchToSettings();
+    //                     }
+    //                 }
+    //             }, function() {
+    //                 console.error("❌ Gagal meminta izin!");
+    //             });
+    //         }
+    //     }, function() {
+    //         if(!localStorage.getItem("locationPermission") || localStorage.getItem("locationPermission") !== "true"){
+    //             alert("Anda belum mengaktifkan izin lokasi, izinkan secara manual di pengaturan aplikasi.");
+    //             cordova.plugins.diagnostic.switchToSettings();
+    //         }
+    //         console.error("❌ Gagal mengecek izin!");
+    //     });
+    // }
+    // function checkIfPermissionDeniedPermanently() {
+    //     cordova.plugins.diagnostic.getPermissionAuthorizationStatus(function(status) {
+    //         if (status === cordova.plugins.diagnostic.permissionStatus.DENIED_ALWAYS) {
+    //             console.error("⚠️ Izin ditolak secara permanen ('Jangan Tanya Lagi').");
+    //             alert("Anda harus mengaktifkan izin lokasi secara manual di pengaturan aplikasi.");
+    //                 cordova.plugins.diagnostic.switchToSettings();
+    //         } else if (status === cordova.plugins.diagnostic.permissionStatus.DENIED_ONCE) {
+    //             console.warn("⚠️ Izin ditolak sementara ('Don't Allow').");
+    //             alert("Anda harus mengaktifkan izin lokasi secara manual di pengaturan aplikasi.");
+    //                 cordova.plugins.diagnostic.switchToSettings();
+    //         } else if (status === cordova.plugins.diagnostic.permissionStatus.GRANTED) {
+    //             console.log("✅ Izin lokasi diberikan secara permanen.");
+    //         } else if (status === cordova.plugins.diagnostic.permissionStatus.NOT_REQUESTED) {
+    //             console.warn("ℹ️ Izin belum pernah diminta sebelumnya.");
+    //         }
+    //     }, function(error) {
+    //         console.error("Gagal memeriksa status izin:", error);
+    //     }, cordova.plugins.diagnostic.permission.ACCESS_FINE_LOCATION);
+    // }
     
     
-    // startApps()
+    startApps()
     function startNavigator(pos){//kode fro starting route
         destination = pos
 
@@ -217,7 +285,7 @@
             map.removeControl(routingControl)
         }
         startPoint = curLoc
-        routingControl = createRoute(startPoint,destination,routeStyle,UserIcon,DestinasiIcon,map)
+        routingControl = createRoute(startPoint,destination,routeStyle,CreateUserIcon(userIdentity.userimg),DestinasiIcon,map)
         console.log(routingControl)
 
         map.on('moveend', function() {
@@ -227,7 +295,7 @@
         
         hasrouting = true;
         
-        map.flyTo(startPoint , 17)
+        map.setView(startPoint , 17)
 
 
         hitungJarak(startPoint ,destination,userMarker,routingControl,map,hasrouting,socket)
@@ -242,9 +310,11 @@
 
         TrackUser((userLocation)=> {
             curLoc = userLocation
+            // console.log(userIdentity);
+            
             if(!firstTrack) {
                 firstTrack = userLocation
-                map.flyTo([userLocation.lat,userLocation.lng] , 17)
+                map.setView([userLocation.lat,userLocation.lng] , 17)
                 console.log("its suppose to be run once")
             }
             if(routingControl){
@@ -257,7 +327,7 @@
             userMarker = markerMove(userMarker,userLocation,map);
 
             if(hasrouting){
-                socket.emit('tracking', {lat:curLoc.lat , lng:curLoc.lng , destination:destination, hasrouting:hasrouting})
+                socket.emit('tracking', {lat:curLoc.lat , lng:curLoc.lng , destination:destination, hasrouting:hasrouting,userInfo:userIdentity})
             }else{
                 if(userMarker && userMarker.getPopup()){
                     userMarker.closePopup();
@@ -268,10 +338,9 @@
         },(err)=> {
             console.error(err);
         })
-        
 
         function flyBackToUser(){
-            map.flyTo([curLoc.lat,curLoc.lng], 17)
+            map.setView([curLoc.lat,curLoc.lng], 17)
         }
         btnFlyToLocation.addEventListener('click', () =>{
             flyBackToUser()
@@ -315,19 +384,21 @@
 
         drawerAltControl(containerCustomRoutingControl, headContainerRoutingControl, moveBtn)
 
-        const setShowOtherUserRoute = (id,location) => {
+        const setShowOtherUserRoute = (data) => {
+            const { location, userInfo , id } = data;
             showOtherUserRoute = id;
-            handleOtherRoutes(location)
+            handleOtherRoutes(data)
             btnCancelOtherUser.style.opacity = "100%"
         };
-        const handleOtherRoutes = (location) => {
-
+        const handleOtherRoutes = (data) => {
+            const { location, userInfo , id } = data;
+            console.log(data)
             if (!otherRoutingControl) {
                 otherRoutingControl = createRoute(
                     L.latLng(location.lat, location.lng),
                     location.destination,
                     otherRouteStyle,
-                    OtherUserIcon,
+                    CreateOtherUserIcon(userInfo.userimg),
                     otherDestinasiIcon,
                     map
                 )
@@ -338,7 +409,7 @@
                     L.latLng(location.lat, location.lng),
                     location.destination,
                     otherRouteStyle,
-                    OtherUserIcon,
+                    CreateOtherUserIcon(userInfo.userimg),
                     otherDestinasiIcon,
                     map
                 )
@@ -353,11 +424,11 @@
 
         
         socket.on('receive-location', (data) => {
-            const { location, id } = data;
+            const { location, userInfo , id } = data;
+            console.log({userInfo})
             otherUserList(".listOther",data,setShowOtherUserRoute,map)
             if (id === showOtherUserRoute) {
-                handleOtherRoutes(location)
-                
+                handleOtherRoutes(data)
             }
             
         })

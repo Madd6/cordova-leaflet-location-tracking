@@ -3,7 +3,7 @@ export default function TrackUser(callback) {
         const lat = pos.coords.latitude
         const lng = pos.coords.longitude
         const userLocation = L.latLng(lat, lng)
-        console.log({lat},{lng},{userLocation})
+        console.log({pos})
         callback(userLocation)
     },(error) => {
         if(error.code == 1){
